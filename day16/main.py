@@ -116,20 +116,80 @@ def solve_part_one(map_: T_Map) -> int:
     return cost
 
 
-def solve_part_two(map_: T_Map) -> int:
-    result = 0
+def custom_dijkstra_all_paths(
+    nodes: list[T_Node],
+    adj: T_Adj,
+    start_node: T_Node,
+    end_node: T_Node,
+    best_cost: int,
+) -> list[list[tuple[T_Position, T_Direction]]]:
+    paths = []
 
-    return result
+    Q = []
+    dist = {}
+
+    dist[(start_node, "E")] = 0
+    heapq.heappush(Q, (0, (start_node, "E"), [(start_node, "E")]))
+
+    while len(Q) > 0:
+        dist_u, (u, u_dir), path = heapq.heappop(Q)
+
+        if dist_u > best_cost:
+            continue
+        
+        if u == end_node:
+            paths.append(path)
+            continue
+
+        if (u, u_dir) in dist and dist_u > dist[(u, u_dir)]:
+            continue
+
+        dist[(u, u_dir)] = dist_u
+
+        for v, v_dir in adj[u]:
+            dist_v = dist_u + 1 + 1000 * int(u_dir != v_dir)
+            heapq.heappush(Q, (dist_v, (v, v_dir), [*path, (v, v_dir)]))
+
+    return paths
+
+
+def solve_part_two(map_: T_Map) -> int:
+    start_node, end_node = find_start_end_positions(map_)
+    nodes, adj = build_graph(map_)
+
+    # Get the cost of the best path
+    best_cost = custom_dijkstra(
+        nodes,
+        adj,
+        start_node,
+        end_node,
+    )
+
+    paths = custom_dijkstra_all_paths(
+        nodes,
+        adj,
+        start_node,
+        end_node,
+        best_cost,
+    )
+
+    unique_pos = set(
+        pos
+        for path in paths
+        for pos, _ in path
+    )
+
+    return len(unique_pos)
 
 
 def run_tests() -> None:
     data = read_input("data/example.txt")
     assert solve_part_one(data) == 7_036
-    # assert solve_part_two(data) == ...
+    assert solve_part_two(data) == 45
 
     data = read_input("data/example2.txt")
     assert solve_part_one(data) == 11_048
-    # assert solve_part_two(data) == ...
+    assert solve_part_two(data) == 64
 
     assert solve_part_one(read_input("data/example3.txt")) == 21_148
     assert solve_part_one(read_input("data/example4.txt")) == 4_013
